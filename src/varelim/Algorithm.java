@@ -51,8 +51,9 @@ public class Algorithm {
             // Else case return variable with (1,1) which can be eliminated right away
             // Repeat until elimination order is empty
         }
-        // Print the results
-        ui.printQueryAnswer(factors.get(0).stringifyProbs(query));
+        // Print the results\
+        Factor finalFactor = factors.get(0);
+        ui.printQueryAnswer(finalFactor.toString());
     }
 
     /**

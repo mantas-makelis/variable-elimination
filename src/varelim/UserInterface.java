@@ -261,12 +261,9 @@ public class UserInterface {
     /**
      * Prints the answer of the user query.
      *
-     * @param table a string of the table of the last factor after elimination
+     * @param finalTable a string of the table of the last factor after elimination
      */
-    public void printQueryAnswer(String table) {
-        System.out.println(table);
-        System.out.println("hello2");
-
-
+    public void printQueryAnswer(String finalTable) {
+        System.out.println(finalTable);
     }
 }

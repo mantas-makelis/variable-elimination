@@ -2,7 +2,6 @@ package varelim;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.PriorityQueue;
 
 /**
@@ -138,10 +137,6 @@ public class Factor {
      * @param eliminate the variable to eliminate
      */
     private Factor mergeFactors(Factor factor1, Factor factor2, Variable eliminate) {
-
-        // Create HashSet (because no duplicates), add variables from both factors
-        HashSet<Variable> combinedVars = new HashSet<>(factor2.variables);
-//        Stream.of(factor1.variables, factor2.variables).forEach(combinedVars::addAll);
         // Initialise the array of combined probabilities
         ArrayList<ProbRow> combinedProbs = new ArrayList<>();
 
@@ -159,7 +154,7 @@ public class Factor {
                 }
             }
         }
-        return new Factor(new ArrayList<>(combinedVars), combinedProbs);
+        return new Factor(factor2.variables, combinedProbs);
     }
 
     /**
@@ -230,7 +225,13 @@ public class Factor {
      *
      * @return a string of the table
      */
-    public String stringifyProbs(Variable query) {
-        return new Table(query, probabilities).toString();
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n").append(variables.get(0).getName()).append("\n");
+        for (ProbRow pr : probabilities) {
+            sb.append(pr.getValues()).append(" | ").append(pr.getProb()).append("\n");
+        }
+        return sb.toString();
     }
 }
