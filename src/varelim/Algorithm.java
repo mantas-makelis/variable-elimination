@@ -31,14 +31,23 @@ public class Algorithm {
      * @param probs a list of the probability tables for each variable
      */
     public void runElimination(Variable query, ArrayList<Variable> vars, ArrayList<Table> probs) {
+        // Initialise factors according to all variables
         ArrayList<Factor> factors = factorize(vars, probs);
+        // Create the order of elimination according to the number of parents
         PriorityQueue<Variable> elimOrder = compriseOrder(query, vars);
+        // Start elimination process
         do {
+            // Pop the variable with lowest number of parents
             Variable eliminate = elimOrder.poll();
+            // Retrieve factors which contain the popped variable
             ArrayList<Factor> concerningFactors = getFactorsContaining(eliminate, factors);
+            // Create new factor from the given
             Factor mergedFactor = new Factor(concerningFactors, eliminate);
+            // Add new factor to the list
             factors.add(mergedFactor);
+            // Repeat until elimination order is empty
         } while (!elimOrder.isEmpty());
+        // Print the results
         ui.printQueryAnswer(factors.get(0).stringifyProbs(query));
     }
 
@@ -51,11 +60,11 @@ public class Algorithm {
      */
     private ArrayList<Factor> factorize(ArrayList<Variable> vars, ArrayList<Table> probs) {
         ArrayList<Factor> factors = new ArrayList<>();
+        // Create factors out of all variables which are NOT observed and at least one parent
         for (Variable var : vars) {
-            if (var.isObserved() && var.getNrOfParents() == 0){
-                continue;
+            if (!var.isObserved() && var.getNrOfParents() != 0){
+                factors.add(new Factor(var, getProb(var, probs)));
             }
-            factors.add(new Factor(var, getProb(var, probs)));
         }
         return factors;
     }
@@ -68,7 +77,9 @@ public class Algorithm {
      * @return the order of elimination
      */
     private PriorityQueue<Variable> compriseOrder(Variable query, ArrayList<Variable> vars) {
+        // Initialise the priority queue which compares members by the number of their parents
         PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrOfParents));
+        // Add variables which are NOT observed and is not a query
         for (Variable var : vars) {
             if (!var.isObserved() && !var.equals(query)) {
                 order.add(var);
