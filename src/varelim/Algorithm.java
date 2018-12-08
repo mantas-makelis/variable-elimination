@@ -40,11 +40,14 @@ public class Algorithm {
             // Pop the variable with lowest number of parents
             Variable eliminate = elimOrder.poll();
             // Retrieve factors which contain the popped variable
-            ArrayList<Factor> concerningFactors = getFactorsContaining(eliminate, factors);
-            // Create new factor from the given
-            Factor mergedFactor = new Factor(concerningFactors, eliminate);
-            // Add new factor to the list
-            factors.add(mergedFactor);
+            ArrayList<Factor> concerningFactors = getFactorsContainingEliminate(eliminate, factors);
+            // Eliminate the variable which is contained in at least 2 factors
+            if (concerningFactors.size() > 1) {
+                // Create new factor from the given
+                Factor mergedFactor = new Factor(concerningFactors, eliminate);
+                // Add new factor to the list
+                factors.add(mergedFactor);
+            }
             // Repeat until elimination order is empty
         } while (!elimOrder.isEmpty());
         // Print the results
@@ -60,9 +63,9 @@ public class Algorithm {
      */
     private ArrayList<Factor> factorize(ArrayList<Variable> vars, ArrayList<Table> probs) {
         ArrayList<Factor> factors = new ArrayList<>();
-        // Create factors out of all variables which are NOT observed and at least one parent
+        // Create factors out of all variables which are NOT observed
         for (Variable var : vars) {
-            if (!var.isObserved() && var.getNrOfParents() != 0){
+            if (!var.isObserved()){
                 factors.add(new Factor(var, getProb(var, probs)));
             }
         }
@@ -110,13 +113,15 @@ public class Algorithm {
      * @param factors a list of all the factors
      * @return a list containing only the factors which contain the given variable
      */
-    private ArrayList<Factor> getFactorsContaining(Variable var, ArrayList<Factor> factors) {
+    private ArrayList<Factor> getFactorsContainingEliminate(Variable var, ArrayList<Factor> factors) {
         ArrayList<Factor> containing = new ArrayList<>();
+        // Add factor to the containing if the factor contains variable to eliminate
         for (Factor factor : factors) {
             if (factor.containsVariable(var)) {
                 containing.add(factor);
             }
         }
+        // Remove all factors from the factor list that contained the variable to eliminate
         for (Factor factor : containing){
             factors.remove(factor);
         }
