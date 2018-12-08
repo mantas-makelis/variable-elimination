@@ -55,4 +55,12 @@ public class ProbRow {
         return prob;
     }
 
+    /**
+     * Setter of the probability
+     *
+     * @param prob the probability
+     */
+    public void setProb(double prob) {
+        this.prob = prob;
+    }
 }

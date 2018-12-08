@@ -36,7 +36,7 @@ public class Algorithm {
         // Create the order of elimination according to the number of parents
         PriorityQueue<Variable> elimOrder = compriseOrder(query, vars);
         // Start elimination process
-        do {
+        while (!elimOrder.isEmpty()) {
             // Pop the variable with lowest number of parents
             Variable eliminate = elimOrder.poll();
             // Retrieve factors which contain the popped variable
@@ -48,8 +48,9 @@ public class Algorithm {
                 // Add new factor to the list
                 factors.add(mergedFactor);
             }
+            // Else case return variable with (1,1) which can be eliminated right away
             // Repeat until elimination order is empty
-        } while (!elimOrder.isEmpty());
+        }
         // Print the results
         ui.printQueryAnswer(factors.get(0).stringifyProbs(query));
     }

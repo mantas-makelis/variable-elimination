@@ -264,7 +264,9 @@ public class UserInterface {
      * @param table a string of the table of the last factor after elimination
      */
     public void printQueryAnswer(String table) {
-        System.out.println();
+        System.out.println(table);
+        System.out.println("hello2");
+
 
     }
 }

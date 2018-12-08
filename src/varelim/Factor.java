@@ -1,9 +1,9 @@
 package varelim;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.stream.Stream;
+import java.util.PriorityQueue;
 
 /**
  * Represents the factor in variable elimination algorithm and is the part of it.
@@ -72,27 +72,61 @@ public class Factor {
         // Initialise null factor for future use
         Factor factor = new Factor();
         // Push all given factors into a queue list
-        LinkedList<Factor> factorList = new LinkedList<>(factors);
+        PriorityQueue<Factor> factorQueue = new PriorityQueue<>(Comparator.comparing(Factor::getNoOfVariables));
+        factorQueue.addAll(factors);
         // Run until all given factors are no longer in the list
-        while (!factorList.isEmpty()) {
+        while (!factorQueue.isEmpty()) {
             if (factor.isNull()) {
                 // First time of the loop, pop two factors out and merge them with another constructor
-                factor = mergeFactors(factorList.pop(), factorList.pop(), eliminate);
+                factor = mergeFactors(factorQueue.poll(), factorQueue.poll(), eliminate);
             } else {
                 // All the other times of the loop, pop one factor and merge with the previously merged factor
-                factor = mergeFactors(factor, factorList.pop(), eliminate);
+                factor = mergeFactors(factor, factorQueue.poll(), eliminate);
             }
         }
 
-        // TODO: factor marginalization
+        int tableSize = 1;
+        for (Variable var : factor.getVariables()) {
+            if (!var.equals(eliminate)) {
+                tableSize *= var.getNumberOfValues();
+            }
+        }
+
+        ArrayList<ProbRow> finalTable = new ArrayList<>();
+        int index = factor.variables.indexOf(eliminate);
+        for (ProbRow example : factor.probabilities) {
+            ArrayList<ArrayList<String>> values = getPossibleRows(index, eliminate, example.getValues());
+            ProbRow variation = new ProbRow(values.get(0), 0);
+            for (ProbRow row : factor.probabilities) {
+                ArrayList<String> dummy = row.getValues();
+                if (values.contains(dummy)) {
+                    variation.setProb(variation.getProb() + row.getProb());
+                }
+            }
+            variation.getValues().remove(index);
+            finalTable.add(variation);
+            if (finalTable.size() == tableSize) {
+                break;
+            }
+        }
 
         // Retrieve variables from the merged factor
         ArrayList<Variable> vars = factor.getVariables();
         // Remove the eliminated variable
         vars.remove(eliminate);
         // Set the variable and probs to THIS factor
-        variables = factor.getVariables();
-        probabilities = factor.getProbabilities();
+        variables = vars;
+        probabilities = finalTable;
+    }
+
+    private ArrayList<ArrayList<String>> getPossibleRows(int index, Variable eliminate, ArrayList<String> example) {
+        ArrayList<ArrayList<String>> values = new ArrayList<>();
+        for (String value : eliminate.getValues()) {
+            ArrayList<String> newExample = (ArrayList<String>) example.clone();
+            newExample.set(index, value);
+            values.add(newExample);
+        }
+        return values;
     }
 
     /**
@@ -104,65 +138,32 @@ public class Factor {
      * @param eliminate the variable to eliminate
      */
     private Factor mergeFactors(Factor factor1, Factor factor2, Variable eliminate) {
-        if (factor1.isSubFactor(factor2)) {
-            return factor1;
-        } else if (factor2.isSubFactor(factor1)) {
-            return factor2;
-        } else {
-            // Create HashSet (because no duplicates), add variables from both factors
-            HashSet<Variable> combinedVars = new HashSet<>();
-            Stream.of(factor1.variables, factor2.variables).forEach(combinedVars::addAll);
-            // Initialise the array of combined probabilities
-            ArrayList<ProbRow> combinedProbs = new ArrayList<>();
 
-            int probsSize = 1;
-            for (Variable var : combinedVars){
-                probsSize *= var.getNumberOfValues();
-            }
+        // Create HashSet (because no duplicates), add variables from both factors
+        HashSet<Variable> combinedVars = new HashSet<>(factor2.variables);
+//        Stream.of(factor1.variables, factor2.variables).forEach(combinedVars::addAll);
+        // Initialise the array of combined probabilities
+        ArrayList<ProbRow> combinedProbs = new ArrayList<>();
 
-            for (int i = 0; i < probsSize; i++) {
+        int index1 = factor1.variables.indexOf(eliminate);
+        int index2 = factor2.variables.indexOf(eliminate);
+        ArrayList<ProbRow> probs1 = factor1.probabilities;
+        ArrayList<ProbRow> probs2 = factor2.probabilities;
 
-            }
-
-            /*// Get indexes (column number) from both factors of the variable which we want to eliminate
-            int index1 = factor1.variables.indexOf(eliminate);
-            int index2 = factor2.variables.indexOf(eliminate);
-            // Retrieve the probabilities of both factors
-            ArrayList<ProbRow> probs1 = factor1.probabilities;
-            ArrayList<ProbRow> probs2 = factor2.probabilities;
-            // Initialise new array which will contain combined probabilities
-
-            // TODO: merge probabilities
-
-            for (ProbRow row1 : probs1) {
-                // Get a probabilities row from first factor
-                ArrayList<String> values1 = row1.getValues();
-                for (ProbRow row2 : probs2) {
-                    // Get a probabilities row from second factor
-                    ArrayList<String> values2 = row2.getValues();
-                    // If both rows of both factors contain elimination variable - merge to new row, now containing only 1 elimination var
-                    if (values1.get(index1).equals(values2.get(index2))) {
-                        // Initialise array with values of the first factor
-                        ArrayList<String> values = new ArrayList<>(values1);
-                        // Add all from the second factor except the elimination variable
-                        for (int i = 0; i < values2.size(); i++) {
-                            if (i != index2) {
-                                values.add(values2.get(i));
-                            }
-                        }
-                        // Multiply probabilities and assign it to the row
-                        double prob = row1.getProb() * row2.getProb();
-                        combinedProbs.add(new ProbRow(values, prob));
-                    }
+        for (ProbRow row1 : probs1) {
+            for (ProbRow row2 : probs2) {
+                if (row1.getValues().get(index1).equals(row2.getValues().get(index2))) {
+                    double prob = row1.getProb() * row2.getProb();
+                    ProbRow row = new ProbRow(row2.getValues(), prob);
+                    combinedProbs.add(row);
                 }
-            }*/
-
-            return new Factor(new ArrayList<>(combinedVars), combinedProbs);
+            }
         }
+        return new Factor(new ArrayList<>(combinedVars), combinedProbs);
     }
 
     /**
-     * Dummy factor constructor.
+     * Dummy constructor
      */
     private Factor() {
     }
@@ -176,20 +177,6 @@ public class Factor {
     private Factor(ArrayList<Variable> variables, ArrayList<ProbRow> probabilities) {
         this.variables = variables;
         this.probabilities = probabilities;
-    }
-
-    /**
-     * Check if the given factor is a sub-factor.
-     * @param factor the factor which potentially might be a sub-factor
-     * @return true if it is a sub-factor, otherwise, false
-     */
-    private boolean isSubFactor(Factor factor) {
-        for (Variable var : factor.getVariables()){
-            if (!variables.contains(var)){
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -217,6 +204,15 @@ public class Factor {
      */
     private ArrayList<ProbRow> getProbabilities() {
         return probabilities;
+    }
+
+    /**
+     * Gets variable count in the factor.
+     *
+     * @return count of variables
+     */
+    public int getNoOfVariables() {
+        return variables.size();
     }
 
     /**
