@@ -51,9 +51,12 @@ public class Algorithm {
             // Else case return variable with (1,1) which can be eliminated right away
             // Repeat until elimination order is empty
         }
-        Factor finalFactor = new Factor();
+        Factor finalFactor;
         if (factors.size() > 1) {
             finalFactor = new Factor(factors, null);
+        }
+        else {
+            finalFactor = factors.get(0);
         }
         // Print the results
         finalFactor = normalize(finalFactor);

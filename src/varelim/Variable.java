@@ -153,4 +153,10 @@ public class Variable {
     public boolean isObserved() {
         return observed;
     }
+
+    @Override
+    public boolean equals(Object var) {
+        Variable variable = (Variable) var;
+        return name.equals(variable.getName());
+    }
 }

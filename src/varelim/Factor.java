@@ -52,9 +52,10 @@ public class Factor {
         for (int i = 0; i < colToRemove.size(); i++) {
             if (variables.size() > 1 && !variable.equals(varToRemove.get(i))) {
                 variables.remove(varToRemove.get(i));
-            }
-            for (ProbRow row : probTable.getTable()) {
-                row.getValues().remove(colToRemove.get(i));
+                for (ProbRow row : probTable.getTable()) {
+                    int index = colToRemove.get(i);
+                    row.getValues().remove(index);
+                }
             }
         }
         // Add probability table to the factor
@@ -71,7 +72,7 @@ public class Factor {
     public Factor(ArrayList<Factor> factors, Variable eliminate) {
         // Initialise null factor for future use
         Factor factor = new Factor();
-        if (eliminate != null){
+        if (eliminate != null) {
             // Push all given factors into a queue list
             PriorityQueue<Factor> factorQueue = new PriorityQueue<>(Comparator.comparing(Factor::getNoOfVariables));
             factorQueue.addAll(factors);
@@ -87,26 +88,33 @@ public class Factor {
             }
             int tableSize = 1;
             for (Variable var : factor.getVariables()) {
-                if (!var.equals(eliminate)) {
+                if (!var.equals(eliminate) && !var.isObserved()) {
                     tableSize *= var.getNumberOfValues();
                 }
             }
 
             ArrayList<ProbRow> finalTable = new ArrayList<>();
+            ArrayList<ArrayList<String>> usedExamples = new ArrayList<>();
+
             int index = factor.variables.indexOf(eliminate);
+
             for (ProbRow example : factor.probabilities) {
-                ArrayList<ArrayList<String>> values = getPossibleRows(index, eliminate, example.getValues());
-                ProbRow variation = new ProbRow(values.get(0), 0);
-                for (ProbRow row : factor.probabilities) {
-                    ArrayList<String> dummy = row.getValues();
-                    if (values.contains(dummy)) {
-                        variation.setProb(variation.getProb() + row.getProb());
+                ArrayList<String> exampleValues = example.getValues();
+                if (!usedExamples.contains(exampleValues)){
+                    ArrayList<ArrayList<String>> variations = getPossibleRows(index, eliminate, example.getValues());
+                    usedExamples.addAll(variations);
+                    ProbRow variation = new ProbRow(variations.get(0), 0);
+                    for (ProbRow row : factor.probabilities) {
+                        ArrayList<String> dummy = row.getValues();
+                        if (variations.contains(dummy)) {
+                            variation.setProb(variation.getProb() + row.getProb());
+                        }
                     }
-                }
-                variation.getValues().remove(index);
-                finalTable.add(variation);
-                if (finalTable.size() == tableSize) {
-                    break;
+                    variation.getValues().remove(index);
+                    finalTable.add(variation);
+                    if (finalTable.size() == tableSize) {
+                        break;
+                    }
                 }
             }
 
@@ -134,15 +142,15 @@ public class Factor {
 
             while (!eliminateList.isEmpty()) {
                 Factor factorToMerge = eliminateList.poll();
-                for (Variable var : factorToMerge.getVariables()){
-                    if (!var.equals(query)){
+                for (Variable var : factorToMerge.getVariables()) {
+                    if (!var.equals(query)) {
                         varsToRemove.add(var);
                         break;
                     }
                 }
                 factor = mergeFactors(factor, factorToMerge, query);
             }
-            for (Variable var : varsToRemove){
+            for (Variable var : varsToRemove) {
                 factor.variables.remove(var);
             }
             variables = factor.getVariables();
@@ -181,12 +189,20 @@ public class Factor {
             for (ProbRow row2 : probs2) {
                 if (row1.getValues().get(index1).equals(row2.getValues().get(index2))) {
                     double prob = row1.getProb() * row2.getProb();
-                    ProbRow row = new ProbRow(row2.getValues(), prob);
+                    ProbRow row;
+                    if (probs1.size() > probs2.size()) {
+                        row = new ProbRow(row1.getValues(), prob);
+                    } else {
+                        row = new ProbRow(row2.getValues(), prob);
+                    }
                     combinedProbs.add(row);
                 }
             }
         }
-        return new Factor(factor2.variables, combinedProbs);
+
+        ArrayList<Variable> finalVars = factor1.variables.size() < factor2.variables.size() ? factor2.variables : factor1.variables;
+        Factor merged = new Factor(finalVars, combinedProbs);
+        return merged;
     }
 
     /**
