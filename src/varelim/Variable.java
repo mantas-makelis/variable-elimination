@@ -29,6 +29,8 @@ public class Variable {
         this.possibleValues = possibleValues;
     }
 
+    public Variable() {}
+
     /**
      * Transform variable and its values to string.
      */

@@ -2,6 +2,7 @@ package varelim;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.PriorityQueue;
 
 /**
@@ -28,49 +29,34 @@ public class Factor {
         variables.add(variable);
         variables.addAll(variable.getParents());
 
-        if (variable.isObserved()) {
-            String value = variable.getObservedValue();
-            ArrayList<ProbRow> toRemove = new ArrayList<>();
-            for (ProbRow row : probTable.getTable()) {
-                if (!row.getValues().get(0).equals(value)) {
-                    toRemove.add(row);
-                }
-            }
-            for (ProbRow row : toRemove) {
-                probTable.getTable().remove(row);
-            }
-        } else {
-            probabilities = probTable.getTable();
-        }
-
-        /*// Remove the observed variables and some of their probability rows
-        ArrayList<Variable> observedToRemove = new ArrayList<>();
-        ArrayList<ProbRow> probsToRemove = new ArrayList<>();
+        ArrayList<Variable> varToRemove = new ArrayList<>();
+        ArrayList<Integer> colToRemove = new ArrayList<>();
         for (int i = 0; i < variables.size(); i++) {
-            // Run only for observed variables
             if (variables.get(i).isObserved()) {
-                // Search for unobserved probabilities
+                varToRemove.add(variables.get(i));
+                colToRemove.add(i);
+                String value = variables.get(i).getObservedValue();
+                ArrayList<ProbRow> rowToRemove = new ArrayList<>();
                 for (ProbRow row : probTable.getTable()) {
-                    if (!variables.get(i).getObservedValue().equals(row.getValues().get(i))) {
-                        // If value of the observed variable in the probability table is different than observed - add to remove list.
-                        probsToRemove.add(row);
-                    } else {
-                        // Remove the value (NOT probability itself) from the probability table e.g. remove not A
-                        row.getValues().remove(i);
+                    if (!row.getValues().get(i).equals(value)) {
+                        rowToRemove.add(row);
                     }
                 }
-                // Also, if the observed variable is the base of THIS factor, add ir to remove from the factor variables
-                if (!variables.get(i).equals(variable)) {
-                    observedToRemove.add(variables.get(i));
+                for (ProbRow row : rowToRemove) {
+                    probTable.getTable().remove(row);
                 }
+            } else {
+                probabilities = probTable.getTable();
             }
         }
-        for (Variable var : observedToRemove) {
-            variables.remove(var);
+        for (int i = 0; i < colToRemove.size(); i++) {
+            if (variables.size() > 1 && !variable.equals(varToRemove.get(i))) {
+                variables.remove(varToRemove.get(i));
+            }
+            for (ProbRow row : probTable.getTable()) {
+                row.getValues().remove(colToRemove.get(i));
+            }
         }
-        for (ProbRow row : probsToRemove) {
-            probTable.getTable().remove(row);
-        }*/
         // Add probability table to the factor
         probabilities = probTable.getTable();
     }
@@ -85,52 +71,83 @@ public class Factor {
     public Factor(ArrayList<Factor> factors, Variable eliminate) {
         // Initialise null factor for future use
         Factor factor = new Factor();
-        // Push all given factors into a queue list
-        PriorityQueue<Factor> factorQueue = new PriorityQueue<>(Comparator.comparing(Factor::getNoOfVariables));
-        factorQueue.addAll(factors);
-        // Run until all given factors are no longer in the list
-        while (!factorQueue.isEmpty()) {
-            if (factor.isNull()) {
-                // First time of the loop, pop two factors out and merge them with another constructor
-                factor = mergeFactors(factorQueue.poll(), factorQueue.poll(), eliminate);
-            } else {
-                // All the other times of the loop, pop one factor and merge with the previously merged factor
-                factor = mergeFactors(factor, factorQueue.poll(), eliminate);
-            }
-        }
-
-        int tableSize = 1;
-        for (Variable var : factor.getVariables()) {
-            if (!var.equals(eliminate)) {
-                tableSize *= var.getNumberOfValues();
-            }
-        }
-
-        ArrayList<ProbRow> finalTable = new ArrayList<>();
-        int index = factor.variables.indexOf(eliminate);
-        for (ProbRow example : factor.probabilities) {
-            ArrayList<ArrayList<String>> values = getPossibleRows(index, eliminate, example.getValues());
-            ProbRow variation = new ProbRow(values.get(0), 0);
-            for (ProbRow row : factor.probabilities) {
-                ArrayList<String> dummy = row.getValues();
-                if (values.contains(dummy)) {
-                    variation.setProb(variation.getProb() + row.getProb());
+        if (eliminate != null){
+            // Push all given factors into a queue list
+            PriorityQueue<Factor> factorQueue = new PriorityQueue<>(Comparator.comparing(Factor::getNoOfVariables));
+            factorQueue.addAll(factors);
+            // Run until all given factors are no longer in the list
+            while (!factorQueue.isEmpty()) {
+                if (factor.isNull()) {
+                    // First time of the loop, pop two factors out and merge them with another constructor
+                    factor = mergeFactors(factorQueue.poll(), factorQueue.poll(), eliminate);
+                } else {
+                    // All the other times of the loop, pop one factor and merge with the previously merged factor
+                    factor = mergeFactors(factor, factorQueue.poll(), eliminate);
                 }
             }
-            variation.getValues().remove(index);
-            finalTable.add(variation);
-            if (finalTable.size() == tableSize) {
-                break;
+            int tableSize = 1;
+            for (Variable var : factor.getVariables()) {
+                if (!var.equals(eliminate)) {
+                    tableSize *= var.getNumberOfValues();
+                }
             }
-        }
 
-        // Retrieve variables from the merged factor
-        ArrayList<Variable> vars = factor.getVariables();
-        // Remove the eliminated variable
-        vars.remove(eliminate);
-        // Set the variable and probs to THIS factor
-        variables = vars;
-        probabilities = finalTable;
+            ArrayList<ProbRow> finalTable = new ArrayList<>();
+            int index = factor.variables.indexOf(eliminate);
+            for (ProbRow example : factor.probabilities) {
+                ArrayList<ArrayList<String>> values = getPossibleRows(index, eliminate, example.getValues());
+                ProbRow variation = new ProbRow(values.get(0), 0);
+                for (ProbRow row : factor.probabilities) {
+                    ArrayList<String> dummy = row.getValues();
+                    if (values.contains(dummy)) {
+                        variation.setProb(variation.getProb() + row.getProb());
+                    }
+                }
+                variation.getValues().remove(index);
+                finalTable.add(variation);
+                if (finalTable.size() == tableSize) {
+                    break;
+                }
+            }
+
+            // Retrieve variables from the merged factor
+            ArrayList<Variable> vars = factor.getVariables();
+            // Remove the eliminated variable
+            vars.remove(eliminate);
+            // Set the variable and probs to THIS factor
+            variables = vars;
+            probabilities = finalTable;
+        } else {
+            // This part of the algorithm is called only when the elimination order is empty but the factor list contains more than one.
+            // This can happen when the observed variables are the parents or distant parents of the queried variable.
+            Variable query = new Variable();
+            for (Factor mainFactor : factors) {
+                if (mainFactor.getVariables().size() == 1) {
+                    query = mainFactor.getVariables().get(0);
+                    factor = mainFactor;
+                    break;
+                }
+            }
+            factors.remove(factor);
+            LinkedList<Factor> eliminateList = new LinkedList<>(factors);
+            ArrayList<Variable> varsToRemove = new ArrayList<>();
+
+            while (!eliminateList.isEmpty()) {
+                Factor factorToMerge = eliminateList.poll();
+                for (Variable var : factorToMerge.getVariables()){
+                    if (!var.equals(query)){
+                        varsToRemove.add(var);
+                        break;
+                    }
+                }
+                factor = mergeFactors(factor, factorToMerge, query);
+            }
+            for (Variable var : varsToRemove){
+                factor.variables.remove(var);
+            }
+            variables = factor.getVariables();
+            probabilities = factor.getProbabilities();
+        }
     }
 
     private ArrayList<ArrayList<String>> getPossibleRows(int index, Variable eliminate, ArrayList<String> example) {
@@ -175,7 +192,7 @@ public class Factor {
     /**
      * Dummy constructor
      */
-    private Factor() {
+    public Factor() {
     }
 
     /**
@@ -203,7 +220,7 @@ public class Factor {
      *
      * @return variables
      */
-    private ArrayList<Variable> getVariables() {
+    public ArrayList<Variable> getVariables() {
         return variables;
     }
 
@@ -212,7 +229,7 @@ public class Factor {
      *
      * @return probabilities
      */
-    private ArrayList<ProbRow> getProbabilities() {
+    public ArrayList<ProbRow> getProbabilities() {
         return probabilities;
     }
 

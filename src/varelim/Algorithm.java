@@ -51,10 +51,29 @@ public class Algorithm {
             // Else case return variable with (1,1) which can be eliminated right away
             // Repeat until elimination order is empty
         }
+        Factor finalFactor = new Factor();
+        if (factors.size() > 1) {
+            finalFactor = new Factor(factors, null);
+        }
         // Print the results
-        Factor finalFactor = factors.get(0);
+        finalFactor = normalize(finalFactor);
         ui.printQueryAnswer(finalFactor.toString());
     }
+
+    private Factor normalize(Factor finalFactor) {
+        // Sum up all the probabilities
+        double sumProb = 0;
+        for (ProbRow row : finalFactor.getProbabilities()) {
+            sumProb += row.getProb();
+        }
+        System.out.println(sumProb);
+        for (ProbRow probability : finalFactor.getProbabilities()) {
+            // Normalize results, round to 5 digits.
+            probability.setProb(Math.round((probability.getProb() / sumProb) * 100000.0) / 100000.0);
+        }
+        return finalFactor;
+    }
+
 
     /**
      * Converts all the variables to a list of the factors.
@@ -67,9 +86,33 @@ public class Algorithm {
         ArrayList<Factor> factors = new ArrayList<>();
         // Create factors out of all variables which are NOT observed
         for (Variable var : vars) {
-            factors.add(new Factor(var, getProb(var, probs)));
+            Factor factor = new Factor(var, getProb(var, probs));
+            factors.add(factor);
         }
-        return factors;
+        return getFullyObserved(factors);
+    }
+
+    /**
+     * Gets the fully observed factors removed.
+     * Remove factors with only observed.
+     *
+     * @param factors factor list
+     * @return a list of factors
+     */
+    private ArrayList<Factor> getFullyObserved(ArrayList<Factor> factors) {
+        ArrayList<Factor> updatedFactors = new ArrayList<>();
+        for (Factor factor : factors) {
+            boolean remove = true;
+            for (Variable variable : factor.getVariables()) {
+                if (!variable.isObserved()) {
+                    remove = false;
+                }
+            }
+            if (!remove) {
+                updatedFactors.add(factor);
+            }
+        }
+        return updatedFactors;
     }
 
     /**
