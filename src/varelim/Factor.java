@@ -28,7 +28,22 @@ public class Factor {
         variables.add(variable);
         variables.addAll(variable.getParents());
 
-        // Remove the observed variables and some of their probability rows
+        if (variable.isObserved()) {
+            String value = variable.getObservedValue();
+            ArrayList<ProbRow> toRemove = new ArrayList<>();
+            for (ProbRow row : probTable.getTable()) {
+                if (!row.getValues().get(0).equals(value)) {
+                    toRemove.add(row);
+                }
+            }
+            for (ProbRow row : toRemove) {
+                probTable.getTable().remove(row);
+            }
+        } else {
+            probabilities = probTable.getTable();
+        }
+
+        /*// Remove the observed variables and some of their probability rows
         ArrayList<Variable> observedToRemove = new ArrayList<>();
         ArrayList<ProbRow> probsToRemove = new ArrayList<>();
         for (int i = 0; i < variables.size(); i++) {
@@ -55,7 +70,7 @@ public class Factor {
         }
         for (ProbRow row : probsToRemove) {
             probTable.getTable().remove(row);
-        }
+        }*/
         // Add probability table to the factor
         probabilities = probTable.getTable();
     }

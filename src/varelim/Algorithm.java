@@ -51,7 +51,7 @@ public class Algorithm {
             // Else case return variable with (1,1) which can be eliminated right away
             // Repeat until elimination order is empty
         }
-        // Print the results\
+        // Print the results
         Factor finalFactor = factors.get(0);
         ui.printQueryAnswer(finalFactor.toString());
     }
@@ -67,9 +67,7 @@ public class Algorithm {
         ArrayList<Factor> factors = new ArrayList<>();
         // Create factors out of all variables which are NOT observed
         for (Variable var : vars) {
-            if (!var.isObserved()){
-                factors.add(new Factor(var, getProb(var, probs)));
-            }
+            factors.add(new Factor(var, getProb(var, probs)));
         }
         return factors;
     }
@@ -111,6 +109,7 @@ public class Algorithm {
 
     /**
      * Gets factors which contain the given variable.
+     *
      * @param var the variable for which to look in factors
      * @param factors a list of all the factors
      * @return a list containing only the factors which contain the given variable
@@ -124,7 +123,7 @@ public class Algorithm {
             }
         }
         // Remove all factors from the factor list that contained the variable to eliminate
-        for (Factor factor : containing){
+        for (Factor factor : containing) {
             factors.remove(factor);
         }
         return containing;
