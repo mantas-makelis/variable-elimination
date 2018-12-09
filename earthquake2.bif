@@ -1,7 +1,7 @@
 network unknown {
 }
 variable Earthquake {
-  type discrete [ 2 ] { True, False };
+  type discrete [ 2 ] { None, Big, Small };
 }
 variable Alarm {
   type discrete [ 2 ] { True, False };

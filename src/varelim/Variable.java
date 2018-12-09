@@ -17,7 +17,7 @@ public class Variable {
 	// setParents() because of the .bif file layout
     private String observedValue;
     private boolean observed = false;
-
+    private int nrFactors;
     /**
      * Constructor of the class.
      *
@@ -158,5 +158,21 @@ public class Variable {
     public boolean equals(Object var) {
         Variable variable = (Variable) var;
         return name.equals(variable.getName());
+    }
+
+    /**
+     * Get total number of appearances in factors
+     * @return number of appearances
+     */
+    public int getNrFactors(){
+        return nrFactors;
+    }
+
+    /**
+     * Setter for total number of appearances in factors
+     * @param i new count
+     */
+    public void setNrFactors(int i){
+        nrFactors = i;
     }
 }

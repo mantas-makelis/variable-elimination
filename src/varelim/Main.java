@@ -38,8 +38,8 @@ public class Main {
         ArrayList<Variable> observed = ui.getObservedVariables();
 
         // Ask user for heuristic
-        ui.askForHeuristic();
-        String heuristic = ui.getHeuristic();
+        //ui.askForHeuristic();
+        //String heuristic = ui.getHeuristic();
 
         // Print the query and observed variables
         ui.printQueryAndObserved(query, observed);

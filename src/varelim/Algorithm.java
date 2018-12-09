@@ -1,8 +1,6 @@
 package varelim;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.PriorityQueue;
+import java.util.*;
 
 /**
  * Represents the variable elimination algorithm.
@@ -36,7 +34,7 @@ public class Algorithm {
         ArrayList<Factor> factors = factorize(vars, probs);
 
         // Create the order of elimination according to the number of parents
-        PriorityQueue<Variable> elimOrder = compriseOrder(query, vars, factors);
+        Queue<Variable> elimOrder = compriseOrder(query, vars, factors);
 
         while (!elimOrder.isEmpty()) {
             Variable eliminate = elimOrder.poll();
@@ -53,7 +51,8 @@ public class Algorithm {
 
         }
         Factor finalFactor;
-        // In case the we quary the ancester of observed variables.
+
+        // In case the quary is the ancester of observed variables.
         if (factors.size() > 1) {
             finalFactor = new Factor(factors, null);
         }
@@ -129,14 +128,25 @@ public class Algorithm {
 
     /**
      * Comprises the order in which to eliminate the variables.
+     * Consists of least-arcs incoming, fewest factors and random.
      *
      * @param query the variable for which the probability needs to be determined
      * @param vars a list of all the variables in the Bayesian network.
      * @return the order of elimination
      */
-    private PriorityQueue<Variable> compriseOrder(Variable query, ArrayList<Variable> vars, ArrayList<Factor> factors) {
+    private Queue<Variable> compriseOrder(Variable query, ArrayList<Variable> vars, ArrayList<Factor> factors) {
+        // Initialise the priority queue which compares members by the number of their parents
+        PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrOfParents));
 
-        if (ui.getHeuristic() == "least-incoming") {
+        // Add variables which are NOT observed and is not a query
+        for (Variable var : vars) {
+            if (!var.isObserved() && !var.equals(query)) {
+                order.add(var);
+            }
+        }
+        return order;
+
+       /* if (ui.getHeuristic() == "least-incoming") {
             // Initialise the priority queue which compares members by the number of their parents
             PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrOfParents));
 
@@ -151,31 +161,28 @@ public class Algorithm {
 
         else if (ui.getHeuristic() == "fewest-factors"){
             // fewest factors
-
-            // Initialise the priority queue which compares members by the number of their parents
-            PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrOfParents));
-
-            // Add variables which are NOT observed and is not a query
-            for (Variable var : vars) {
-                if (!var.isObserved() && !var.equals(query)) {
-                    order.add(var);
+            for (Variable var : vars){
+                int count = 0;
+                for (Factor factor : factors){
+                    if (factor.getVariables().contains(var)){
+                        count++;
+                    }
                 }
+                var.setNrFactors(count);
             }
+            PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrFactors));
             return order;
         }
 
         else{
-            // Initialise the priority queue which compares members by the number of their parents
-            PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrOfParents));
-
-            // Add variables which are NOT observed and is not a query
-            for (Variable var : vars) {
-                if (!var.isObserved() && !var.equals(query)) {
-                    order.add(var);
-                }
-            }
+            // Initialise the priority queue with random order
+            System.out.println(vars);
+            Collections.shuffle(vars);
+            System.out.println(vars);
+            LinkedList<Variable> order = new LinkedList<>(vars);
+            System.out.println(order);
             return order;
-        }
+        }*/
     }
 
     /**
