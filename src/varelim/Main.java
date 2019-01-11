@@ -33,14 +33,13 @@ public class Main {
         ui.askForQuery();
         Variable query = ui.getQueriedVariable();
 
-        // Turn this on if you want to experiment with different heuristics for bonus points (you need to implement
-        // the heuristics yourself)
-        //reader.askForHeuristic();
-        //String heuristic = Ui.getHeuristic();
-
         // Ask user for observed variables
         ui.askForObservedVariables();
         ArrayList<Variable> observed = ui.getObservedVariables();
+
+        // Ask user for heuristic
+        //ui.askForHeuristic();
+        //String heuristic = ui.getHeuristic();
 
         // Print the query and observed variables
         ui.printQueryAndObserved(query, observed);

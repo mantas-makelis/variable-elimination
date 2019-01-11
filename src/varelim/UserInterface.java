@@ -1,6 +1,7 @@
 package varelim;
 
 import java.util.ArrayList;
+import java.util.PriorityQueue;
 import java.util.Scanner;
 
 /**
@@ -265,5 +266,134 @@ public class UserInterface {
      */
     public void printQueryAnswer(String finalTable) {
         System.out.println(finalTable);
+    }
+
+    /**
+     * Prints the reduced product formula based on the network structure
+     *
+     * @param vars a list of all variables
+     */
+    public void printProductFormula(ArrayList<Variable> vars) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\nThe reduced formula based on the network structure:\n");
+        for (Variable var : vars) {
+            sb.append("P(").append(var.getName(), 0, 1);
+            if (var.isObserved()) {
+                String value = var.getObservedValue();
+                sb.append("=").append(value);
+            }
+            if (var.getNrOfParents() != 0) {
+                sb.append("|");
+                for (Variable parent : var.getParents()) {
+                    sb.append(parent.getName(), 0, 1);
+                    if (parent.isObserved()) {
+                        String value = parent.getObservedValue();
+                        sb.append("=").append(value);
+                    }
+                    if (var.getParents().indexOf(parent) != var.getParents().size() - 1) {
+                        sb.append(",");
+                    }
+                }
+            }
+            sb.append(")");
+            if (vars.indexOf(var) != vars.size() - 1) {
+                sb.append("·");
+            }
+        }
+        sb.append("\n");
+        System.out.println(sb.toString());
+    }
+
+    /**
+     * Prints the formula of the reduced factors.
+     *
+     * @param fullyObserved reduced factor list
+     */
+    public void printFactorFormula(ArrayList<Factor> fullyObserved, boolean firstTime) {
+        StringBuilder sb = new StringBuilder();
+        if (firstTime) {
+            sb.append("The formula of the reduced factors:\n");
+        } else {
+            sb.append("Formula after the merge:\n");
+        }
+        addFactorsToStringBuilder(fullyObserved, sb, false);
+        System.out.println(sb.toString());
+    }
+
+    /**
+     * Print the elimination order.
+     *
+     * @param elimOrder a list of variables in the elimination order
+     */
+    public void printEliminationOrder(PriorityQueue<Variable> elimOrder) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("The elimination order, based on least incoming arcs:\n");
+        int order = 1;
+        while (!elimOrder.isEmpty()) {
+            Variable var = elimOrder.poll();
+            sb.append(order).append(". ").append(var.getName(), 0, 1).append("\n");
+            order++;
+        }
+        System.out.println(sb.toString());
+    }
+
+    /**
+     * Prints the factors that are going to be merged.
+     *
+     * @param concerningFactors the list of factors to merge
+     * @param eliminate the variable to eliminate
+     */
+    public void printMergingFactors(ArrayList<Factor> concerningFactors, Variable eliminate) {
+        StringBuilder sb = new StringBuilder();
+        if (concerningFactors.size() > 1) {
+            sb.append("Merging the following factors by eliminating ").append(eliminate.getName(), 0, 1).append(" variable\n");
+            addFactorsToStringBuilder(concerningFactors, sb, true);
+        } else {
+            sb.append("The following factor is safely ignored:\n");
+            addFactorsToStringBuilder(concerningFactors, sb, true);
+        }
+        System.out.println(sb.toString());
+    }
+
+    /**
+     * Prints the last factors that are merged. Only used if the query variable is the ancestor of the observed variable(s).
+     *
+     * @param factors a list of factors to be merged
+     */
+    public void printLastFactorMerge(ArrayList<Factor> factors) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Merging last remaining factors: \n");
+        addFactorsToStringBuilder(factors, sb, true);
+        System.out.println(sb.toString());
+    }
+
+    /**
+     * An auxiliary function to add factors list to the string builder.
+     *
+     * @param factors a list of factors
+     * @param sb string builder
+     * @param newLine a check if a new line is needed
+     */
+    private void addFactorsToStringBuilder(ArrayList<Factor> factors, StringBuilder sb, boolean newLine) {
+        for (int i = 0; i < factors.size(); i++) {
+            sb.append("f").append(i + 1).append("(");
+            for (Variable var : factors.get(i).getVariables()) {
+                if (var.isObserved()) {
+                    sb.append(var.getName(), 0, 1).append("=").append(var.getObservedValue());
+                } else {
+                    sb.append(var.getName(), 0, 1);
+                }
+
+                if (factors.get(i).getVariables().indexOf(var) != factors.get(i).getVariables().size() - 1) {
+                    sb.append(",");
+                }
+            }
+            sb.append(")");
+            if (i != factors.size() - 1 && !newLine) {
+                sb.append("·");
+            } else {
+                sb.append("\n");
+            }
+        }
     }
 }

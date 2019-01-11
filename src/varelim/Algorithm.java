@@ -1,8 +1,6 @@
 package varelim;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.PriorityQueue;
+import java.util.*;
 
 /**
  * Represents the variable elimination algorithm.
@@ -22,54 +20,68 @@ public class Algorithm {
      * probability of the query can be determined.
      * The order of the algorithm:
      * 1. Collect all factors
-     * 2. Figure out the order (probably in order of lowest parent count)
-     * 3. Merge factors in order
-     * 4. Print the probabilities of the remaining factor
+     * 2. Fix order
+     * 3. Multiply factors in order
+     * 4. Marginalize factors
+     * 5. Normalize results
      *
      * @param query the variable for which the probability needs to be determined
      * @param vars a list of all the variables in the Bayesian network
      * @param probs a list of the probability tables for each variable
      */
     public void runElimination(Variable query, ArrayList<Variable> vars, ArrayList<Table> probs) {
+        ui.printProductFormula(vars);
         // Initialise factors according to all variables
         ArrayList<Factor> factors = factorize(vars, probs);
+
         // Create the order of elimination according to the number of parents
-        PriorityQueue<Variable> elimOrder = compriseOrder(query, vars);
-        // Start elimination process
+        Queue<Variable> elimOrder = compriseOrder(query, vars, factors);
+        ui.printEliminationOrder(new PriorityQueue<>(elimOrder));
+
         while (!elimOrder.isEmpty()) {
-            // Pop the variable with lowest number of parents
             Variable eliminate = elimOrder.poll();
+
             // Retrieve factors which contain the popped variable
             ArrayList<Factor> concerningFactors = getFactorsContainingEliminate(eliminate, factors);
+            ui.printMergingFactors(concerningFactors, eliminate);
+
             // Eliminate the variable which is contained in at least 2 factors
             if (concerningFactors.size() > 1) {
-                // Create new factor from the given
                 Factor mergedFactor = new Factor(concerningFactors, eliminate);
-                // Add new factor to the list
                 factors.add(mergedFactor);
             }
-            // Else case return variable with (1,1) which can be eliminated right away
-            // Repeat until elimination order is empty
+            // Any factor concerning 1 variable results in (1,1) probability.
+            ui.printFactorFormula(factors, false);
         }
         Factor finalFactor;
+
+        // In case the query is the ancestor of observed variables.
         if (factors.size() > 1) {
+            ui.printLastFactorMerge(factors);
             finalFactor = new Factor(factors, null);
         }
         else {
             finalFactor = factors.get(0);
         }
-        // Print the results
+
+        // Gather results
         finalFactor = normalize(finalFactor);
         ui.printQueryAnswer(finalFactor.toString());
+
     }
 
+    /**
+     * Normalize the final factor by the formula : factor / (sum of probabilities of the factor)
+     *
+     * @param finalFactor
+     * @return
+     */
     private Factor normalize(Factor finalFactor) {
         // Sum up all the probabilities
         double sumProb = 0;
         for (ProbRow row : finalFactor.getProbabilities()) {
             sumProb += row.getProb();
         }
-        System.out.println(sumProb);
         for (ProbRow probability : finalFactor.getProbabilities()) {
             // Normalize results, round to 5 digits.
             probability.setProb(Math.round((probability.getProb() / sumProb) * 100000.0) / 100000.0);
@@ -92,7 +104,9 @@ public class Algorithm {
             Factor factor = new Factor(var, getProb(var, probs));
             factors.add(factor);
         }
-        return getFullyObserved(factors);
+        ArrayList<Factor> fullyObserved = getFullyObserved(factors);
+        ui.printFactorFormula(fullyObserved, true);
+        return fullyObserved;
     }
 
     /**
@@ -120,14 +134,16 @@ public class Algorithm {
 
     /**
      * Comprises the order in which to eliminate the variables.
+     * Consists of least-arcs incoming, fewest factors and random.
      *
      * @param query the variable for which the probability needs to be determined
      * @param vars a list of all the variables in the Bayesian network.
      * @return the order of elimination
      */
-    private PriorityQueue<Variable> compriseOrder(Variable query, ArrayList<Variable> vars) {
+    private Queue<Variable> compriseOrder(Variable query, ArrayList<Variable> vars, ArrayList<Factor> factors) {
         // Initialise the priority queue which compares members by the number of their parents
         PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrOfParents));
+
         // Add variables which are NOT observed and is not a query
         for (Variable var : vars) {
             if (!var.isObserved() && !var.equals(query)) {
@@ -135,6 +151,44 @@ public class Algorithm {
             }
         }
         return order;
+
+       /* if (ui.getHeuristic() == "least-incoming") {
+            // Initialise the priority queue which compares members by the number of their parents
+            PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrOfParents));
+
+            // Add variables which are NOT observed and is not a query
+            for (Variable var : vars) {
+                if (!var.isObserved() && !var.equals(query)) {
+                    order.add(var);
+                }
+            }
+            return order;
+        }
+
+        else if (ui.getHeuristic() == "fewest-factors"){
+            // fewest factors
+            for (Variable var : vars){
+                int count = 0;
+                for (Factor factor : factors){
+                    if (factor.getVariables().contains(var)){
+                        count++;
+                    }
+                }
+                var.setNrFactors(count);
+            }
+            PriorityQueue<Variable> order = new PriorityQueue<>(Comparator.comparing(Variable::getNrFactors));
+            return order;
+        }
+
+        else{
+            // Initialise the priority queue with random order
+            System.out.println(vars);
+            Collections.shuffle(vars);
+            System.out.println(vars);
+            LinkedList<Variable> order = new LinkedList<>(vars);
+            System.out.println(order);
+            return order;
+        }*/
     }
 
     /**
@@ -144,7 +198,7 @@ public class Algorithm {
      * @param probs a list of the probability tables for each variable
      * @return the corresponding probability table
      */
-    private Table getProb(Variable var, ArrayList<Table> probs) {
+    public Table getProb(Variable var, ArrayList<Table> probs) {
         for (Table prob : probs) {
             if (prob.getVariable().equals(var)) {
                 return prob;
@@ -160,7 +214,7 @@ public class Algorithm {
      * @param factors a list of all the factors
      * @return a list containing only the factors which contain the given variable
      */
-    private ArrayList<Factor> getFactorsContainingEliminate(Variable var, ArrayList<Factor> factors) {
+    public ArrayList<Factor> getFactorsContainingEliminate(Variable var, ArrayList<Factor> factors) {
         ArrayList<Factor> containing = new ArrayList<>();
         // Add factor to the containing if the factor contains variable to eliminate
         for (Factor factor : factors) {
